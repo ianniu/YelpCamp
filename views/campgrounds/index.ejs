@@ -1,8 +1,22 @@
 <% layout('layouts/boilerplate') -%>
 <div id="cluster-map"></div>
 <div class="container">
+<% if (search) { %> 
+    <h1>All Campgrounds in <%= search %></h1>
+<% } else {%> 
 <h1>All Campgrounds</h1>
-
+<% } %> 
+<p>
+    <form action="/campgrounds" class="row g-3">
+        <div class="col-auto">
+            <input type="text" name="search" placeholder="Campground Search..." class="form-control">
+            
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary mb-3">Search</button>
+        </div>
+    </form>
+</p>
 <% for(let campground of campgrounds) { %>
         <div class="card mb-3">
             <div class="row">
