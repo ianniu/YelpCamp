@@ -4,7 +4,12 @@ const mapboxToken = process.env.MAPBOX_TOKEN;
 const geocoder = mbxGeocoding({ accessToken: mapboxToken });
 const { cloudinary } = require('../cloudinary');
 
+//INDEX - show all campgrounds
 module.exports.index = async (req, res) => {
+    const perPage = 10;
+    const pageQuery = parseInt(req.query.page);
+    const pageNumber = pageQuery ? pageQuery : 1;
+
     const search = req.query.search;
     if (search) {
         const regex = new RegExp(escapeRegex(search), 'gi');
@@ -12,16 +17,48 @@ module.exports.index = async (req, res) => {
             $or: [
                 { title: regex },
                 { location: regex },]
+        }).skip((perPage * pageNumber) - perPage).limit(perPage).exec(function (err, campgrounds) {
+            Campground.count({
+                $or: [
+                    { title: regex },
+                    { location: regex },]
+            }).exec(function (err, count) {
+                if (err) {
+                    console.log(err);
+                    res.redirect("back");
+                } else {
+                    if (campgrounds.length < 1) {
+                        req.flash("error", `There's no campground related to ${search}. Please try to search another or create one :)`);
+                        return res.redirect("/campgrounds");
+                    }
+                    res.render('campgrounds/index', {
+                        campgrounds,
+                        current: pageNumber,
+                        pages: Math.ceil(count / perPage),
+                        search
+                    })
+                }
+            });
         });
-        if (campgrounds.length < 1) {
-            req.flash("error", `There's no campground related to ${search}. Please try to search another or create one :)`);
-            return res.redirect("/campgrounds");
-        }
-        res.render('campgrounds/index', { campgrounds, search })
-    } else {
+    }
+    else {
         // get all campgrounds from DB
-        const campgrounds = await Campground.find({});
-        res.render('campgrounds/index', { campgrounds, search })
+        // const campgrounds = await Campground.find({});
+        // res.render('campgrounds/index', { campgrounds, search })
+        Campground.find({}).skip((perPage * pageNumber) - perPage).limit(perPage).exec(function (err, campgrounds) {
+            Campground.count().exec(function (err, count) {
+                if (err) {
+                    console.log(err);
+                } else {
+                    res.render("campgrounds/index", {
+                        campgrounds: campgrounds,
+                        current: pageNumber,
+                        pages: Math.ceil(count / perPage),
+                        search: false
+                    });
+                }
+            });
+        });
     }
 }
 
